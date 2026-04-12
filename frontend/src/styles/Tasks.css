@@ -1,0 +1,156 @@
+/* Tasks page styles */
+.tasks-page {
+  padding: 28px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tasks-header h2 {
+  font-size: 22px;
+  color: #2c3e50;
+}
+
+/* Filter dropdowns */
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filters select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+  color: #333;
+}
+
+.filters select:focus {
+  outline: none;
+  border-color: #4f86c6;
+}
+
+/* Task table */
+.tasks-table-wrap {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tasks-table th {
+  background-color: #f8f9fa;
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #444;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.tasks-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+  vertical-align: middle;
+}
+
+.tasks-table tr:last-child td {
+  border-bottom: none;
+}
+
+.tasks-table tr:hover td {
+  background-color: #fafbfc;
+}
+
+/* Overdue row highlight */
+.row-overdue td {
+  background-color: #fff5f5;
+}
+
+.overdue-date {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.overdue-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Priority badges */
+.badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-high {
+  background-color: #fde8e8;
+  color: #c0392b;
+}
+
+.badge-medium {
+  background-color: #fef3e2;
+  color: #d35400;
+}
+
+.badge-low {
+  background-color: #e8f8f0;
+  color: #27ae60;
+}
+
+/* Action buttons in table */
+.btn-edit {
+  background: #eaf2fb;
+  color: #2980b9;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+.btn-edit:hover {
+  background: #d4e8f7;
+}
+
+.btn-delete {
+  background: #fde8e8;
+  color: #c0392b;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-delete:hover {
+  background: #fac9c9;
+}
+
+.no-tasks {
+  text-align: center;
+  padding: 48px;
+  color: #888;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}

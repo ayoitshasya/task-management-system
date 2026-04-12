@@ -1,0 +1,26 @@
+/* Reports page styles */
+.reports-page {
+  padding: 28px 32px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.reports-page h2 {
+  font-size: 22px;
+  color: #2c3e50;
+  margin-bottom: 6px;
+}
+
+.report-form {
+  background: white;
+  padding: 28px 32px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-top: 20px;
+}
+
+.report-form .btn-primary {
+  margin-top: 8px;
+  padding: 11px 24px;
+  font-size: 15px;
+}
