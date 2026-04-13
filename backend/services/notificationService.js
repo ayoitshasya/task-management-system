@@ -1,7 +1,8 @@
 // notificationService.js - Cron job that checks for overdue/due-today tasks
 // and inserts notifications for assigned users
 const cron = require('node-cron');
-const db = require('../config/db');
+const Task = require('../models/Task');
+const Notification = require('../models/Notification');
 
 // This function runs on a schedule to find tasks that are due today or overdue
 const startNotificationCron = () => {
@@ -10,27 +11,29 @@ const startNotificationCron = () => {
     console.log('[Cron] Running overdue task check...');
 
     try {
-      const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      // End of today — tasks due any time today or earlier count
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+
+      const todayStr = new Date().toISOString().split('T')[0];
 
       // Find tasks that are due today or overdue and not yet completed
-      const [tasks] = await db.query(
-        `SELECT t.id, t.title, t.due_date, t.assigned_to
-         FROM tasks t
-         WHERE t.due_date <= ? AND t.status != 'Completed' AND t.assigned_to IS NOT NULL`,
-        [today]
-      );
+      const tasks = await Task.find({
+        due_date: { $lte: endOfToday },
+        status: { $ne: 'Completed' },
+        assigned_to: { $ne: null }
+      }).lean();
 
       for (const task of tasks) {
-        const isOverdue = task.due_date < today;
+        const dueDateStr = task.due_date.toISOString().split('T')[0];
+        const isOverdue = dueDateStr < todayStr;
+
         const message = isOverdue
-          ? `Task "${task.title}" is overdue (was due on ${task.due_date})`
+          ? `Task "${task.title}" is overdue (was due on ${dueDateStr})`
           : `Task "${task.title}" is due today!`;
 
         // Insert notification for the assigned user
-        await db.query(
-          'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
-          [task.assigned_to, message]
-        );
+        await Notification.create({ user_id: task.assigned_to, message });
 
         // In production this would send an actual email via nodemailer/SMTP
         // For now, just log to console

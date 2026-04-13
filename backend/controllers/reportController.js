@@ -1,6 +1,6 @@
 // reportController.js - Generates PDF report of tasks within a date range
 const PDFDocument = require('pdfkit');
-const db = require('../config/db');
+const Task = require('../models/Task');
 
 // GET /api/reports?from=YYYY-MM-DD&to=YYYY-MM-DD
 // Returns a downloadable PDF file with task summary
@@ -12,16 +12,17 @@ const generateReport = async (req, res) => {
   }
 
   try {
-    // Fetch tasks within the date range, with assignee and creator names
-    const [tasks] = await db.query(
-      `SELECT t.*, u1.name AS assigned_to_name, u2.name AS created_by_name
-       FROM tasks t
-       LEFT JOIN users u1 ON t.assigned_to = u1.id
-       LEFT JOIN users u2 ON t.created_by = u2.id
-       WHERE t.due_date BETWEEN ? AND ?
-       ORDER BY t.due_date ASC`,
-      [from, to]
-    );
+    // Fetch tasks within the date range (inclusive of the full "to" day)
+    const tasks = await Task.find({
+      due_date: {
+        $gte: new Date(from),
+        $lte: new Date(to + 'T23:59:59.999Z')
+      }
+    })
+      .populate('assigned_to', 'name')
+      .populate('created_by', 'name')
+      .sort({ due_date: 1 })
+      .lean();
 
     // Set headers so browser knows this is a downloadable PDF
     res.setHeader('Content-Type', 'application/pdf');
@@ -57,7 +58,7 @@ const generateReport = async (req, res) => {
     doc.text(`Completed: ${completed}`);
     doc.moveDown(1);
 
-    // Table header line
+    // Table header
     doc.fontSize(13).font('Helvetica-Bold').text('Task Details');
     doc.moveDown(0.5);
 
@@ -78,7 +79,6 @@ const generateReport = async (req, res) => {
       });
 
       doc.moveDown(0.3);
-      // Draw a line under header
       doc.moveTo(startX, doc.y).lineTo(545, doc.y).stroke();
       doc.moveDown(0.3);
 
@@ -87,18 +87,20 @@ const generateReport = async (req, res) => {
       tasks.forEach((task) => {
         y = doc.y;
 
-        // Start a new page if we're near the bottom
+        // Start a new page if near the bottom
         if (y > 700) {
           doc.addPage();
           y = 40;
         }
 
+        const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString() : '-';
+
         const row = [
           task.title,
           task.priority,
           task.status,
-          task.due_date ? new Date(task.due_date).toLocaleDateString() : '-',
-          task.assigned_to_name || 'Unassigned'
+          dueDate,
+          task.assigned_to?.name || 'Unassigned'
         ];
 
         row.forEach((cell, i) => {
