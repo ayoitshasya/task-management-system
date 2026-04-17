@@ -3,7 +3,6 @@ const PDFDocument = require('pdfkit');
 const Task = require('../models/Task');
 
 // GET /api/reports?from=YYYY-MM-DD&to=YYYY-MM-DD
-// Returns a downloadable PDF file with task summary
 const generateReport = async (req, res) => {
   const { from, to } = req.query;
 
@@ -12,7 +11,6 @@ const generateReport = async (req, res) => {
   }
 
   try {
-    // Fetch tasks within the date range (inclusive of the full "to" day)
     const tasks = await Task.find({
       due_date: {
         $gte: new Date(from),
@@ -21,20 +19,14 @@ const generateReport = async (req, res) => {
     })
       .populate('assigned_to', 'name')
       .populate('created_by', 'name')
-      .sort({ due_date: 1 })
-      .lean();
+      .sort({ due_date: 1 });
 
-    // Set headers so browser knows this is a downloadable PDF
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="task-report-${from}-to-${to}.pdf"`);
 
-    // Create PDF document and pipe it directly to the response
     const doc = new PDFDocument({ margin: 40 });
     doc.pipe(res);
 
-    // --- PDF Content ---
-
-    // Title
     doc.fontSize(20).font('Helvetica-Bold').text('Task Management System', { align: 'center' });
     doc.fontSize(14).font('Helvetica').text('Task Report', { align: 'center' });
     doc.moveDown(0.5);
@@ -43,7 +35,6 @@ const generateReport = async (req, res) => {
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, { align: 'center' });
     doc.moveDown(1);
 
-    // Summary counts
     const total = tasks.length;
     const pending = tasks.filter(t => t.status === 'Pending').length;
     const inProgress = tasks.filter(t => t.status === 'In Progress').length;
@@ -58,20 +49,17 @@ const generateReport = async (req, res) => {
     doc.text(`Completed: ${completed}`);
     doc.moveDown(1);
 
-    // Table header
     doc.fontSize(13).font('Helvetica-Bold').text('Task Details');
     doc.moveDown(0.5);
 
     if (tasks.length === 0) {
       doc.fontSize(11).font('Helvetica').text('No tasks found in this date range.');
     } else {
-      // Draw a simple table manually using PDFKit
       const colWidths = [180, 65, 80, 80, 120];
       const headers = ['Title', 'Priority', 'Status', 'Due Date', 'Assigned To'];
       const startX = 40;
       let y = doc.y;
 
-      // Draw header row
       doc.fontSize(10).font('Helvetica-Bold');
       headers.forEach((header, i) => {
         const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
@@ -82,25 +70,17 @@ const generateReport = async (req, res) => {
       doc.moveTo(startX, doc.y).lineTo(545, doc.y).stroke();
       doc.moveDown(0.3);
 
-      // Draw each task row
       doc.fontSize(9).font('Helvetica');
       tasks.forEach((task) => {
         y = doc.y;
-
-        // Start a new page if near the bottom
-        if (y > 700) {
-          doc.addPage();
-          y = 40;
-        }
-
-        const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString() : '-';
+        if (y > 700) { doc.addPage(); y = 40; }
 
         const row = [
           task.title,
           task.priority,
           task.status,
-          dueDate,
-          task.assigned_to?.name || 'Unassigned'
+          task.due_date ? new Date(task.due_date).toLocaleDateString() : '-',
+          task.assigned_to ? task.assigned_to.name : 'Unassigned'
         ];
 
         row.forEach((cell, i) => {

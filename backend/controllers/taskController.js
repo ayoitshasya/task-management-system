@@ -1,10 +1,10 @@
-// taskController.js - CRUD operations for tasks using Mongoose
+// taskController.js - CRUD operations for tasks
 const { validationResult } = require('express-validator');
 const Task = require('../models/Task');
 const Notification = require('../models/Notification');
 const ActivityLog = require('../models/ActivityLog');
 
-// Helper: log an activity entry
+// Helper to log activity (used after create/update/delete)
 const logActivity = async (userId, action) => {
   try {
     await ActivityLog.create({ user_id: userId, action });
@@ -13,36 +13,37 @@ const logActivity = async (userId, action) => {
   }
 };
 
-// Helper: format a task document for the frontend
-// Adds assigned_to_name, created_by_name, and formats due_date as YYYY-MM-DD
-const formatTask = (task) => ({
-  ...task,
-  id: task._id.toString(),
-  assigned_to: task.assigned_to?._id?.toString() || null,
-  assigned_to_name: task.assigned_to?.name || null,
-  created_by: task.created_by?._id?.toString() || null,
-  created_by_name: task.created_by?.name || null,
-  due_date: task.due_date ? task.due_date.toISOString().split('T')[0] : null
-});
-
 // GET /api/tasks - Get tasks based on role
 // Admin sees all tasks, regular user sees only their own
 const getTasks = async (req, res) => {
   try {
-    let query = {};
+    let query;
 
-    if (req.user.role !== 'admin') {
-      // Regular user: only tasks they created or are assigned to
-      query = { $or: [{ assigned_to: req.user.id }, { created_by: req.user.id }] };
+    if (req.user.role === 'admin') {
+      // Admin gets all tasks
+      query = Task.find();
+    } else {
+      // Regular user sees tasks they created or are assigned to
+      query = Task.find({
+        $or: [{ assigned_to: req.user.id }, { created_by: req.user.id }]
+      });
     }
 
-    const tasks = await Task.find(query)
-      .populate('assigned_to', 'name')
-      .populate('created_by', 'name')
-      .sort({ created_at: -1 })
-      .lean();
+    const tasks = await query
+      .populate('assigned_to', 'name email')
+      .populate('created_by', 'name email')
+      .sort({ created_at: -1 });
 
-    res.json(tasks.map(formatTask));
+    // Flatten for frontend compatibility (assigned_to_name, created_by_name)
+    const result = tasks.map(t => ({
+      ...t.toObject(),
+      id: t._id,
+      assigned_to_name: t.assigned_to ? t.assigned_to.name : null,
+      created_by_name: t.created_by ? t.created_by.name : null,
+      assigned_to: t.assigned_to ? t.assigned_to._id : null,
+    }));
+
+    res.json(result);
   } catch (err) {
     console.error('Get tasks error:', err);
     res.status(500).json({ message: 'Server error fetching tasks' });
@@ -80,7 +81,7 @@ const createTask = async (req, res) => {
     // Log the create action
     await logActivity(req.user.id, `Created task: "${title}"`);
 
-    res.status(201).json({ id: task._id.toString(), message: 'Task created successfully' });
+    res.status(201).json({ id: task._id, message: 'Task created successfully' });
   } catch (err) {
     console.error('Create task error:', err);
     res.status(500).json({ message: 'Server error creating task' });
@@ -93,6 +94,7 @@ const updateTask = async (req, res) => {
   const { title, description, priority, status, due_date, assigned_to } = req.body;
 
   try {
+    // Check task exists
     const existing = await Task.findById(id);
     if (!existing) {
       return res.status(404).json({ message: 'Task not found' });
@@ -108,16 +110,16 @@ const updateTask = async (req, res) => {
       }
     }
 
-    // Build update object with only the provided fields
+    // Build update object with only provided fields
     const updates = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
     if (priority !== undefined) updates.priority = priority;
     if (status !== undefined) updates.status = status;
-    if (due_date !== undefined) updates.due_date = new Date(due_date);
+    if (due_date !== undefined) updates.due_date = due_date;
     if (assigned_to !== undefined) updates.assigned_to = assigned_to || null;
 
-    await Task.findByIdAndUpdate(id, updates);
+    await Task.findByIdAndUpdate(id, updates, { new: true });
     await logActivity(req.user.id, `Updated task ID: ${id}`);
 
     res.json({ message: 'Task updated successfully' });
@@ -137,8 +139,9 @@ const deleteTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    const taskTitle = existing.title;
     await Task.findByIdAndDelete(id);
-    await logActivity(req.user.id, `Deleted task: "${existing.title}"`);
+    await logActivity(req.user.id, `Deleted task: "${taskTitle}"`);
 
     res.json({ message: 'Task deleted successfully' });
   } catch (err) {
@@ -150,11 +153,14 @@ const deleteTask = async (req, res) => {
 // GET /api/tasks/notifications - Get unread notifications for logged in user
 const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ user_id: req.user.id, is_read: false })
-      .sort({ created_at: -1 })
-      .lean();
+    const notifications = await Notification.find({
+      user_id: req.user.id,
+      is_read: false
+    }).sort({ created_at: -1 });
 
-    res.json(notifications);
+    // Add id field for frontend compatibility
+    const result = notifications.map(n => ({ ...n.toObject(), id: n._id }));
+    res.json(result);
   } catch (err) {
     console.error('Get notifications error:', err);
     res.status(500).json({ message: 'Server error fetching notifications' });

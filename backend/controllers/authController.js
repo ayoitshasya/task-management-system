@@ -25,19 +25,20 @@ const register = async (req, res) => {
     // Hash the password before storing (10 salt rounds is standard)
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create and save the new user
-    const user = await User.create({ name, email, password: hashedPassword });
+    // Insert the new user into the database
+    const user = new User({ name, email, password: hashedPassword });
+    await user.save();
 
     // Generate JWT token for the newly registered user
     const token = jwt.sign(
-      { id: user._id.toString(), name, email, role: 'user' },
+      { id: user._id, name: user.name, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     res.status(201).json({
       token,
-      user: { id: user._id.toString(), name, email, role: 'user' }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -69,14 +70,14 @@ const login = async (req, res) => {
 
     // Generate JWT with user info
     const token = jwt.sign(
-      { id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+      { id: user._id, name: user.name, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     res.json({
       token,
-      user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -87,9 +88,14 @@ const login = async (req, res) => {
 // GET /api/auth/users - Get all users (used for assignee dropdown in task form)
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({}, 'name email role').lean();
-    // Map _id to id so the frontend gets a consistent field name
-    const result = users.map(u => ({ id: u._id.toString(), name: u.name, email: u.email, role: u.role }));
+    const users = await User.find({}, 'name email role');
+    // Map _id to _id string so the frontend can use it consistently
+    const result = users.map(u => ({
+      _id: u._id.toString(),
+      name: u.name,
+      email: u.email,
+      role: u.role
+    }));
     res.json(result);
   } catch (err) {
     console.error('Get users error:', err);

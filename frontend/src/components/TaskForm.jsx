@@ -141,7 +141,7 @@ const TaskForm = ({ task, onSave, onClose }) => {
               <select name="assigned_to" value={formData.assigned_to} onChange={handleChange}>
                 <option value="">Unassigned</option>
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
+                  <option key={u._id} value={u._id}>{u.name}</option>
                 ))}
               </select>
             </div>

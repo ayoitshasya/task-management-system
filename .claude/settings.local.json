@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p backend/config backend/controllers backend/middleware backend/routes backend/services)",
+      "Bash(mkdir -p frontend/src/pages frontend/src/components frontend/src/context frontend/src/api)"
+    ]
+  }
+}
