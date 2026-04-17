@@ -34,13 +34,14 @@ const getTasks = async (req, res) => {
       .populate('created_by', 'name email')
       .sort({ created_at: -1 });
 
-    // Flatten for frontend compatibility (assigned_to_name, created_by_name)
+    // Flatten for frontend compatibility
     const result = tasks.map(t => ({
       ...t.toObject(),
       id: t._id,
       assigned_to_name: t.assigned_to ? t.assigned_to.name : null,
       created_by_name: t.created_by ? t.created_by.name : null,
       assigned_to: t.assigned_to ? t.assigned_to._id : null,
+      created_by: t.created_by ? t.created_by._id : null,
     }));
 
     res.json(result);
@@ -100,6 +101,11 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    // Only admin or the task creator can edit
+    if (req.user.role !== 'admin' && String(existing.created_by) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'You can only edit tasks you created' });
+    }
+
     // If due_date is being changed, validate it's not in the past
     if (due_date) {
       const today = new Date();
@@ -137,6 +143,11 @@ const deleteTask = async (req, res) => {
     const existing = await Task.findById(id);
     if (!existing) {
       return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Only admin or the task creator can delete
+    if (req.user.role !== 'admin' && String(existing.created_by) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'You can only delete tasks you created' });
     }
 
     const taskTitle = existing.title;

@@ -8,7 +8,7 @@ const getPriorityClass = (priority) => {
   return 'badge badge-low';
 };
 
-const TaskCard = ({ task, onEdit, onDelete }) => {
+const TaskCard = ({ task, onEdit, onDelete, currentUser }) => {
   // Format date to a readable format
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -34,8 +34,15 @@ const TaskCard = ({ task, onEdit, onDelete }) => {
       </td>
       <td>{task.assigned_to_name || 'Unassigned'}</td>
       <td>
-        <button className="btn-edit" onClick={() => onEdit(task)}>Edit</button>
-        <button className="btn-delete" onClick={() => onDelete(task.id)}>Delete</button>
+        {(currentUser?.role === 'admin' || String(task.created_by) === String(currentUser?.id)) && (
+          <>
+            <button className="btn-edit" onClick={() => onEdit(task)}>Edit</button>
+            <button className="btn-delete" onClick={() => onDelete(task.id)}>Delete</button>
+          </>
+        )}
+        {currentUser?.role !== 'admin' && String(task.created_by) !== String(currentUser?.id) && (
+          <span style={{ color: '#aaa', fontSize: '0.85rem' }}>View only</span>
+        )}
       </td>
     </tr>
   );

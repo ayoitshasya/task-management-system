@@ -1,11 +1,12 @@
-// Tasks.jsx - Main task list page with filters and CRUD actions
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import TaskForm from '../components/TaskForm';
 import TaskCard from '../components/TaskCard';
 import '../styles/Tasks.css';
 
 const Tasks = () => {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +117,7 @@ const Tasks = () => {
                   task={task}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  currentUser={user}
                 />
               ))}
             </tbody>

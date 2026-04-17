@@ -1,11 +1,13 @@
 // TaskForm.jsx - Modal form for creating or editing a task
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import '../styles/TaskForm.css';
 
 const TaskForm = ({ task, onSave, onClose }) => {
   // If a task is passed in, we're editing; otherwise creating
   const isEditing = !!task;
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -136,15 +138,18 @@ const TaskForm = ({ task, onSave, onClose }) => {
               />
             </div>
 
-            <div className="form-group">
-              <label>Assign To</label>
-              <select name="assigned_to" value={formData.assigned_to} onChange={handleChange}>
-                <option value="">Unassigned</option>
-                {users.map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
+            {/* Only admins can assign tasks to other users */}
+            {user?.role === 'admin' && (
+              <div className="form-group">
+                <label>Assign To</label>
+                <select name="assigned_to" value={formData.assigned_to} onChange={handleChange}>
+                  <option value="">Unassigned</option>
+                  {users.map(u => (
+                    <option key={u._id} value={u._id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="form-actions">
