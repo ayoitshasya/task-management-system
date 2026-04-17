@@ -9,7 +9,7 @@ const Register = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -83,6 +83,14 @@ const Register = () => {
               placeholder="At least 6 characters"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label>Role</label>
+            <select name="role" value={formData.role} onChange={handleChange}>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
