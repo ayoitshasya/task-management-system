@@ -72,14 +72,14 @@ task-management-system/
 │   │   └── db.js                  # MongoDB connection via Mongoose
 │   │
 │   ├── models/
-│   │   ├── User.js                # Mongoose schema for users collection
-│   │   ├── Task.js                # Mongoose schema for tasks collection
-│   │   ├── Notification.js        # Mongoose schema for notifications collection
-│   │   └── ActivityLog.js         # Mongoose schema for activity_log collection
+│   │   ├── User.js                # Mongoose schema — users collection
+│   │   ├── Task.js                # Mongoose schema — tasks collection
+│   │   ├── Notification.js        # Mongoose schema — notifications collection
+│   │   └── ActivityLog.js         # Mongoose schema — activitylogs collection
 │   │
 │   ├── controllers/
 │   │   ├── authController.js      # Register, login, get users
-│   │   ├── taskController.js      # Task CRUD + notifications
+│   │   ├── taskController.js      # Task CRUD + notification endpoints
 │   │   └── reportController.js    # PDF report generation
 │   │
 │   ├── middleware/
@@ -184,8 +184,10 @@ MongoDB collections are created automatically by Mongoose on first use. No manua
 ### Prerequisites
 
 - Node.js (v18 or above)
-- MongoDB (v6 or above) running locally
+- MongoDB Community Edition (v6 or above) running locally
 - npm
+
+> MongoDB collections are created automatically by Mongoose on first use — no manual database setup or migration scripts needed.
 
 ### 1. Clone the repository
 
@@ -363,9 +365,10 @@ Returns a downloadable PDF file (`application/pdf`).
 
 A `node-cron` job starts automatically when the backend boots. It runs **every hour** and:
 
-1. Queries all tasks where `due_date <= today` and `status != 'Completed'`
-2. Inserts a notification document into the `notifications` collection for the assigned user
-3. Logs the notification to the console
+1. Queries all tasks where `due_date <= now` and `status != 'Completed'` and `assigned_to != null`
+2. For each task, checks whether a notification with the same message was already sent today (deduplication) — avoids spamming the user every hour
+3. If not already notified today, inserts a notification document into the `notifications` collection for the assigned user
+4. Logs the notification to the console
 
 > In a production environment, this would also send an email via Nodemailer/SMTP. The code includes a comment indicating where that would go.
 
