@@ -569,7 +569,7 @@ The Autopilot page lets users break down large, vague goals into a structured ac
 7. Backend creates a parent task + linked subtask documents in MongoDB, all tagged `ai_generated: true` and linked via `parent_task`
 
 ### Model used
-`gemini-1.5-flash` — Google's fast, free-tier model. 15 requests/minute on the free plan.
+`gemini-2.0-flash` — Google's latest fast, free-tier model. 15 requests/minute on the free plan.
 
 ---
 
