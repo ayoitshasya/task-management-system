@@ -86,7 +86,7 @@ The project demonstrates core OOSE principles including separation of concerns, 
 | PDF Generation | pdfkit | Server-side PDF creation and streaming |
 | Input Validation | express-validator | Request body validation |
 | Rate Limiting | express-rate-limit | Brute-force protection |
-| AI | Google Generative AI (Gemini 1.5 Flash) | Task breakdown + smart scheduling |
+| AI | Groq SDK (Llama 3.3 70B) | Task breakdown + smart scheduling |
 
 ---
 
@@ -245,13 +245,13 @@ FRONTEND_URL=http://localhost:3000
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-> **Getting a free Gemini API key:**
-> 1. Go to [aistudio.google.com](https://aistudio.google.com)
-> 2. Sign in with your Google account
-> 3. Click **"Get API Key"** → **"Create API key"**
-> 4. Copy the key (starts with `AIza...`) and paste it above
+> **Getting a free Groq API key:**
+> 1. Go to [console.groq.com](https://console.groq.com)
+> 2. Sign up (no credit card required)
+> 3. Click **"API Keys"** → **"Create API Key"**
+> 4. Copy the key (starts with `gsk_...`) and paste it above
 >
-> The free tier allows 15 requests/minute — more than enough for this project.
+> The free tier allows 14,400 requests/day — more than enough for this project.
 
 ### 3. Configure frontend environment variables
 
@@ -569,7 +569,7 @@ The Autopilot page lets users break down large, vague goals into a structured ac
 7. Backend creates a parent task + linked subtask documents in MongoDB, all tagged `ai_generated: true` and linked via `parent_task`
 
 ### Model used
-`gemini-2.0-flash` — Google's latest fast, free-tier model. 15 requests/minute on the free plan.
+`llama-3.3-70b-versatile` via Groq — fast, free, 14,400 requests/day on the free plan.
 
 ---
 
@@ -635,7 +635,7 @@ The frontend uses `axios` with `responseType: 'blob'` to receive the binary, the
 | `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/tms_db` |
 | `JWT_SECRET` | Secret key used to sign and verify JWTs | `your_strong_random_secret` |
 | `FRONTEND_URL` | Allowed CORS origin | `http://localhost:3000` |
-| `GEMINI_API_KEY` | Google Gemini API key for AI features | `AIzaSy...` |
+| `GROQ_API_KEY` | Groq API key for AI features | `gsk_...` |
 
 ### Frontend (`frontend/.env`)
 
