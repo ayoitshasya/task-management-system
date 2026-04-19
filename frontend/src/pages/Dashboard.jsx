@@ -1,9 +1,10 @@
-// Dashboard.jsx - Shows summary cards and notifications
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import NotificationPanel from '../components/NotificationPanel';
 import '../styles/Dashboard.css';
+
+const POLL_INTERVAL = 60000; // poll notifications every 60s
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -12,19 +13,32 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
+  const pollRef = useRef(null);
 
   useEffect(() => {
     fetchData();
+
+    // Poll notifications every 60 seconds
+    pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL);
+    return () => clearInterval(pollRef.current);
   }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/tasks/notifications');
+      setNotifications(res.data);
+    } catch (err) {
+      console.error('Notification poll error:', err);
+    }
+  };
 
   const fetchData = async () => {
     try {
-      // Fetch tasks and notifications at the same time
       const [tasksRes, notifRes] = await Promise.all([
-        api.get('/tasks'),
+        api.get('/tasks?limit=200'),
         api.get('/tasks/notifications')
       ]);
-      setTasks(tasksRes.data);
+      setTasks(tasksRes.data.tasks || tasksRes.data);
       setNotifications(notifRes.data);
     } catch (err) {
       console.error('Dashboard fetch error:', err);
@@ -36,20 +50,21 @@ const Dashboard = () => {
   const markRead = async (id) => {
     try {
       await api.put(`/tasks/notifications/${id}/read`);
-      // Remove from the unread list after marking read
       setNotifications(notifications.filter(n => n.id !== id));
     } catch (err) {
       console.error('Mark read error:', err);
     }
   };
 
-  // Calculate summary counts from task data
   const today = new Date().toISOString().split('T')[0];
   const total = tasks.length;
   const pending = tasks.filter(t => t.status === 'Pending').length;
   const inProgress = tasks.filter(t => t.status === 'In Progress').length;
   const completed = tasks.filter(t => t.status === 'Completed').length;
-  const overdue = tasks.filter(t => t.due_date < today && t.status !== 'Completed').length;
+  const overdue = tasks.filter(t => {
+    const due = new Date(t.due_date).toISOString().split('T')[0];
+    return due < today && t.status !== 'Completed';
+  }).length;
 
   if (loading) return <div className="loading">Loading...</div>;
 
@@ -61,7 +76,6 @@ const Dashboard = () => {
           <p className="subtitle">Here's an overview of your tasks</p>
         </div>
 
-        {/* Notification bell */}
         <div className="notif-bell" onClick={() => setShowNotifications(!showNotifications)}>
           <span className="bell-icon">&#128276;</span>
           {notifications.length > 0 && (
@@ -70,7 +84,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Notification panel dropdown */}
       {showNotifications && (
         <NotificationPanel
           notifications={notifications}
@@ -79,7 +92,6 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Summary cards */}
       <div className="summary-cards">
         <div className="card card-total">
           <h3>{total}</h3>
@@ -103,7 +115,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Role info */}
       <div className="role-info">
         <p>Logged in as: <strong>{user?.role === 'admin' ? 'Administrator' : 'User'}</strong></p>
         {user?.role === 'admin' && <p className="admin-note">You can view and manage all tasks.</p>}

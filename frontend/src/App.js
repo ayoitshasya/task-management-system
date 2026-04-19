@@ -1,4 +1,3 @@
-// App.js - Root component with routing and auth protection
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -8,16 +7,15 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Reports from './pages/Reports';
+import AIAutopilot from './pages/AIAutopilot';
+import SmartSchedule from './pages/SmartSchedule';
 import Navbar from './components/Navbar';
 
-// PrivateRoute wraps pages that require login
-// If user is not logged in, redirect to login page
 const PrivateRoute = ({ children }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" />;
 };
 
-// Layout wraps protected pages with the Navbar
 const Layout = ({ children }) => (
   <>
     <Navbar />
@@ -30,37 +28,25 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Protected routes - require login */}
-          <Route
-            path="/dashboard"
-            element={
-              <PrivateRoute>
-                <Layout><Dashboard /></Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/tasks"
-            element={
-              <PrivateRoute>
-                <Layout><Tasks /></Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <PrivateRoute>
-                <Layout><Reports /></Layout>
-              </PrivateRoute>
-            }
-          />
+          <Route path="/dashboard" element={
+            <PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>
+          } />
+          <Route path="/tasks" element={
+            <PrivateRoute><Layout><Tasks /></Layout></PrivateRoute>
+          } />
+          <Route path="/reports" element={
+            <PrivateRoute><Layout><Reports /></Layout></PrivateRoute>
+          } />
+          <Route path="/autopilot" element={
+            <PrivateRoute><Layout><AIAutopilot /></Layout></PrivateRoute>
+          } />
+          <Route path="/schedule" element={
+            <PrivateRoute><Layout><SmartSchedule /></Layout></PrivateRoute>
+          } />
 
-          {/* Default redirect */}
           <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>

@@ -1,4 +1,3 @@
-// server.js - Main entry point for the Express backend
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
@@ -7,33 +6,29 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const { startNotificationCron } = require('./services/notificationService');
 
 const app = express();
 
-// Connect to MongoDB first, then start server
 connectDB();
 
-// Enable CORS so the React frontend (running on port 3000) can talk to this server
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
 
-// Parse incoming JSON request bodies
 app.use(express.json());
 
-// Mount all routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/ai', aiRoutes);
 
-// Simple health check route
 app.get('/', (req, res) => {
   res.json({ message: 'Task Management System API is running' });
 });
 
-// Start the cron job for overdue notifications
 startNotificationCron();
 
 const PORT = process.env.PORT || 5000;

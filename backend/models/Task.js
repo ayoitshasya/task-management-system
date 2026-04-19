@@ -1,4 +1,3 @@
-// Task.js - Mongoose model for the tasks collection
 const mongoose = require('mongoose');
 
 const taskSchema = new mongoose.Schema({
@@ -25,7 +24,6 @@ const taskSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  // References to User documents
   assigned_to: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -35,9 +33,39 @@ const taskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  // AI-generated fields
+  estimated_hours: {
+    type: Number,
+    default: null
+  },
+  parent_task: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task',
+    default: null
+  },
+  is_subtask: {
+    type: Boolean,
+    default: false
+  },
+  ai_generated: {
+    type: Boolean,
+    default: false
+  },
+  completed_at: {
+    type: Date,
+    default: null
+  },
+  // Smart scheduling fields
+  scheduled_start: {
+    type: Date,
+    default: null
+  },
+  original_due_date: {
+    type: Date,
+    default: null
   }
 }, {
-  // Automatically manages created_at and updated_at fields
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 

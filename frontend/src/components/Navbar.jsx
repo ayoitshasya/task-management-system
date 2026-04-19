@@ -1,4 +1,3 @@
-// Navbar.jsx - Top navigation bar with links and logout button
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +25,12 @@ const Navbar = () => {
         </NavLink>
         <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           Reports
+        </NavLink>
+        <NavLink to="/autopilot" className={({ isActive }) => isActive ? 'nav-link active nav-ai' : 'nav-link nav-ai'}>
+          🤖 Autopilot
+        </NavLink>
+        <NavLink to="/schedule" className={({ isActive }) => isActive ? 'nav-link active nav-ai' : 'nav-link nav-ai'}>
+          📅 Schedule
         </NavLink>
       </div>
 

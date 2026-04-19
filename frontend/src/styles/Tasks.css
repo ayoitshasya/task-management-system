@@ -154,3 +154,36 @@
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.page-btn {
+  background: #4f86c6;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #3a6da8;
+}
+
+.page-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 13px;
+  color: #555;
+}

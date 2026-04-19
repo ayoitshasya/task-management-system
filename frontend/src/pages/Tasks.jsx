@@ -5,6 +5,8 @@ import TaskForm from '../components/TaskForm';
 import TaskCard from '../components/TaskCard';
 import '../styles/Tasks.css';
 
+const PAGE_SIZE = 20;
+
 const Tasks = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
@@ -13,15 +15,16 @@ const Tasks = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  // Filter state
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
 
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
+
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [page]);
 
-  // Re-apply filters whenever tasks or filter values change
   useEffect(() => {
     let result = [...tasks];
     if (statusFilter) result = result.filter(t => t.status === statusFilter);
@@ -29,10 +32,22 @@ const Tasks = () => {
     setFiltered(result);
   }, [tasks, statusFilter, priorityFilter]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (page !== 1) setPage(1);
+    else fetchTasks();
+  }, [statusFilter, priorityFilter]);
+
   const fetchTasks = async () => {
     try {
-      const res = await api.get('/tasks');
-      setTasks(res.data);
+      const res = await api.get(`/tasks?page=${page}&limit=${PAGE_SIZE}`);
+      // Handle both old array format and new paginated format
+      if (res.data.tasks) {
+        setTasks(res.data.tasks);
+        setPagination(res.data.pagination);
+      } else {
+        setTasks(res.data);
+      }
     } catch (err) {
       console.error('Fetch tasks error:', err);
     } finally {
@@ -61,7 +76,6 @@ const Tasks = () => {
   };
 
   const handleFormSave = () => {
-    // Refresh tasks after create/update
     fetchTasks();
     handleFormClose();
   };
@@ -77,7 +91,6 @@ const Tasks = () => {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="filters">
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Statuses</option>
@@ -94,7 +107,6 @@ const Tasks = () => {
         </select>
       </div>
 
-      {/* Task table */}
       {filtered.length === 0 ? (
         <div className="no-tasks">No tasks found. Create one!</div>
       ) : (
@@ -125,7 +137,26 @@ const Tasks = () => {
         </div>
       )}
 
-      {/* Create/Edit modal */}
+      {pagination.pages > 1 && (
+        <div className="pagination">
+          <button
+            className="page-btn"
+            disabled={page === 1}
+            onClick={() => setPage(p => p - 1)}
+          >
+            ← Prev
+          </button>
+          <span className="page-info">Page {page} of {pagination.pages} ({pagination.total} tasks)</span>
+          <button
+            className="page-btn"
+            disabled={page === pagination.pages}
+            onClick={() => setPage(p => p + 1)}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
       {showForm && (
         <TaskForm
           task={editingTask}
