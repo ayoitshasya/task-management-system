@@ -1,12 +1,27 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const Task = require('../models/Task');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+let _groq = null;
+const getGroq = () => {
+  if (!_groq) _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  return _groq;
+};
 
-const callGemini = async (prompt) => {
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+const callAI = async (prompt) => {
+  const completion = await getGroq().chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+    max_tokens: 2048
+  });
+  return completion.choices[0].message.content;
+};
+
+const parseJSON = (text) => {
+  const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('AI returned invalid response. Try again.');
+  return JSON.parse(match[0]);
 };
 
 // POST /api/ai/autopilot
@@ -20,26 +35,18 @@ const autopilot = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const prompt = `You are an expert project manager. A user wants to break down a complex task into actionable subtasks.
+    const prompt = `You are an expert project manager. Break down this complex task into actionable subtasks.
 
 Task: "${title}"
 ${description ? `Description: "${description}"` : ''}
-${context ? `Additional context: "${context}"` : ''}
+${context ? `Context: "${context}"` : ''}
 Today's date: ${today}
 
-Break this into 3-7 concrete, actionable subtasks. For each subtask provide:
-1. A clear, specific title
-2. A brief description of what needs to be done
-3. Priority (Low/Medium/High)
-4. Estimated hours to complete (realistic estimate)
-5. Suggested due date (YYYY-MM-DD format, starting from today, ordered logically)
-6. Why this subtask matters
-
-Respond ONLY with valid JSON, no markdown, no code blocks, just raw JSON:
+Return ONLY a valid JSON object (no markdown, no explanation, just the JSON):
 {
   "subtasks": [
     {
-      "title": "subtask title",
+      "title": "specific subtask title",
       "description": "what needs to be done",
       "priority": "High",
       "estimated_hours": 2,
@@ -48,24 +55,22 @@ Respond ONLY with valid JSON, no markdown, no code blocks, just raw JSON:
     }
   ],
   "total_estimated_hours": 10,
-  "recommended_approach": "Brief paragraph on best approach"
-}`;
+  "recommended_approach": "brief paragraph on best approach"
+}
 
-    const text = await callGemini(prompt);
+Rules:
+- 3 to 7 subtasks
+- Priority must be exactly: High, Medium, or Low
+- Dates must be YYYY-MM-DD format starting from ${today}
+- Order subtasks logically (dependencies first)`;
 
-    // Strip markdown code blocks if Gemini wraps in them
-    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ message: 'AI returned invalid response. Try again.' });
-    }
-
-    const plan = JSON.parse(jsonMatch[0]);
+    const text = await callAI(prompt);
+    const plan = parseJSON(text);
     res.json(plan);
   } catch (err) {
     console.error('AI autopilot error:', err);
-    if (err.message?.includes('API_KEY_INVALID') || err.message?.includes('API key')) {
-      return res.status(500).json({ message: 'Invalid Gemini API key. Set GEMINI_API_KEY in backend/.env' });
+    if (err.message?.includes('api_key') || err.status === 401) {
+      return res.status(500).json({ message: 'Invalid Groq API key. Set GROQ_API_KEY in backend/.env' });
     }
     res.status(500).json({ message: 'AI error: ' + err.message });
   }
@@ -168,50 +173,50 @@ const smartSchedule = async (req, res) => {
       is_overdue: t.due_date < today
     }));
 
-    const prompt = `You are a smart scheduling assistant. Analyze these tasks and provide scheduling recommendations.
+    const prompt = `You are a smart scheduling assistant. Analyze these tasks and suggest an optimized schedule.
 
 Today: ${today.toISOString().split('T')[0]}
-Tasks: ${JSON.stringify(taskSummary, null, 2)}
+Active tasks: ${JSON.stringify(taskSummary, null, 2)}
 
-Assume 6 productive hours/day. Identify overloaded days and suggest reschedules for overdue tasks.
+Assume 6 productive hours available per day.
 
-Respond ONLY with valid JSON, no markdown, no code blocks:
+Return ONLY a valid JSON object (no markdown, no explanation):
 {
-  "summary": "Brief overview of the scheduling situation",
-  "productivity_tip": "Actionable advice for this workload",
+  "summary": "1-2 sentence overview of the scheduling situation",
+  "productivity_tip": "one specific actionable tip for this workload",
   "overloaded_days": ["YYYY-MM-DD"],
   "rescheduled": [
     {
-      "task_id": "id string",
-      "task_title": "title",
+      "task_id": "exact id from input",
+      "task_title": "task title",
       "old_due_date": "YYYY-MM-DD",
       "suggested_due_date": "YYYY-MM-DD",
-      "reason": "why rescheduled"
+      "reason": "brief reason"
     }
   ],
   "suggestions": [
     {
       "type": "overdue",
-      "message": "specific actionable suggestion",
+      "message": "actionable suggestion",
       "affected_tasks": ["task title"],
       "priority": "high"
     }
   ]
-}`;
+}
 
-    const text = await callGemini(prompt);
-    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ message: 'AI returned invalid response. Try again.' });
-    }
+Rules:
+- Only include overdue or genuinely overloaded tasks in rescheduled array
+- suggested_due_date must be today or future (>= ${today.toISOString().split('T')[0]})
+- type must be one of: overdue, overload, optimization
+- priority must be: high, medium, or low`;
 
-    const schedule = JSON.parse(jsonMatch[0]);
+    const text = await callAI(prompt);
+    const schedule = parseJSON(text);
     res.json(schedule);
   } catch (err) {
     console.error('Smart schedule error:', err);
-    if (err.message?.includes('API_KEY_INVALID') || err.message?.includes('API key')) {
-      return res.status(500).json({ message: 'Invalid Gemini API key. Set GEMINI_API_KEY in backend/.env' });
+    if (err.message?.includes('api_key') || err.status === 401) {
+      return res.status(500).json({ message: 'Invalid Groq API key. Set GROQ_API_KEY in backend/.env' });
     }
     res.status(500).json({ message: 'AI error: ' + err.message });
   }
